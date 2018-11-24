@@ -51,7 +51,7 @@ func main () {
 
         http.handleFunc("/v1/products/add", addProduct)
         http.handleFunc("/v1/products/", getProducts)
-        http.handleFunc("/v1/user", addUser)
+        http.handleFunc("/v1/user/add", addUser)
         http.handleFunc("/v1/user/search", searchUser)
         log.Fatal(http.ListenAndServe(":8080", nill))
 }
