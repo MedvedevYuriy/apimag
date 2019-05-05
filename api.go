@@ -55,8 +55,44 @@ func main () {
         http.HandleFunc("/v1/user/add", addUser)
         http.HandleFunc("/v1/user/delete", delUser)
         http.HandleFunc("/v1/user/get_token", getToken)
+        http.HandleFunc("/v1/user/get_users", getUsers)
 //        http.HandleFunc("/v1/user/search", searchUser)
         log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func getUsers (w http.ResponseWriter, r *http.Request) {
+        if r.Method != "GET" {
+                http.Error(w, "Method Not Allowed", 405)
+        } else {
+                x_token := r.Header.Get("X-API-TOKEN")
+                query := fmt.Sprintf("select u.role from sessions s left join users u on u.id = s.user_id where s.token = '%s' and ((s.added + interval '1h') > now()) and u.role = 1", x_token)
+                row := db.QueryRow(query)
+                var id int
+                err := row.Scan(&id)
+                if err != nil {
+                        http.Error(w, "Token not found", 403)
+                } else {
+			w_array := Users{}
+
+			rows, err := db.Query("SELECT id, email, role, status from users")
+
+			if err != nil {
+                        	panic(err)
+                	}
+
+                	for rows.Next() {
+				w_user := User{}
+                        	err = rows.Scan(&w_user.Id,&w_user.Email,&w_user.Role,&w_user.Status)
+                        	if err != nil {
+                                	panic(err)
+                        	}
+                        	w_array.Users = append(w_array.Users, w_user)
+
+                	}
+
+                	json.NewEncoder(w).Encode(w_array)
+        	}
+	}
 }
 
 
@@ -114,7 +150,7 @@ func getToken (w http.ResponseWriter, r *http.Request) {
                 if err != nil {
 			http.Error(w, "User Not Found", 403)
                 } else {
-			query := fmt.Sprintf("select from sessions where user_id = %d and ((added + interval '1h') > now())", id)
+			query := fmt.Sprintf("select token from sessions where user_id = %d and ((added + interval '1h') > now())", id)
 			fmt.Println("# select from sessions where user_id = %d and ((added + interval '1h') > now())", id)
 			row := db.QueryRow(query)
 
